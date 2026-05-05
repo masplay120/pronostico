@@ -1,0 +1,198 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cintillo del Tiempo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    background:transparent;
+    font-family:'Poppins',sans-serif;
+    overflow:hidden;
+}
+
+.cintillo-clima{
+    position:fixed;
+    bottom:0;
+    left:0;
+    width:100%;
+    height:90px;
+    background:linear-gradient(90deg,#0d47a1,#1565c0,#1976d2);
+    border-top:4px solid #64b5f6;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    z-index:9999;
+    box-shadow:0 -5px 20px rgba(0,0,0,0.5);
+}
+
+.logo-tv{
+    position:relative;
+    z-index:10;
+    min-width:220px;
+    height:100%;
+    background:#d32f2f;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    color:white;
+    font-weight:700;
+    font-size:22px;
+    letter-spacing:1px;
+    border-right:4px solid rgba(255,255,255,0.2);
+}
+
+.logo-tv::after{
+    content:'';
+    position:absolute;
+    top:0;
+    right:-40px;
+    width:80px;
+    height:100%;
+    background:linear-gradient(90deg,#d32f2f 0%,rgba(211,47,47,0.95) 40%,rgba(211,47,47,0) 100%);
+}
+
+.logo-tv span{
+    font-size:12px;
+    font-weight:400;
+}
+
+.marquesina{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:center;
+    white-space:nowrap;
+    animation:mover 60s linear infinite;
+}
+
+.item-clima{
+    display:flex;
+    align-items:center;
+    margin-right:60px;
+    color:white;
+    font-size:20px;
+    font-weight:600;
+}
+
+.item-clima img{
+    width:42px;
+    height:42px;
+    margin:0 10px;
+    filter:drop-shadow(0 0 5px rgba(255,255,255,0.4));
+}
+
+.temp{
+    color:#ffeb3b;
+    margin-left:10px;
+    font-size:24px;
+}
+
+@keyframes mover{
+    from{
+        transform:translateX(0%);
+    }
+    to{
+        transform:translateX(-50%);
+    }
+    }
+}
+
+@media(max-width:768px){
+
+.logo-tv{
+    min-width:150px;
+    font-size:16px;
+}
+
+.item-clima{
+    font-size:15px;
+    margin-right:35px;
+}
+
+.item-clima img{
+    width:30px;
+    height:30px;
+}
+
+.temp{
+    font-size:18px;
+}
+
+.cintillo-clima{
+    height:70px;
+}
+
+}
+</style>
+</head>
+<body>
+
+<div class="cintillo-clima">
+
+    <div class="logo-tv">
+        EL TIEMPO
+        <span>Argentina en Vivo</span>
+    </div>
+
+    <div class="marquesina">
+
+        <div class="item-clima">
+            Buenos Aires
+            <img src="https://cdn-icons-png.flaticon.com/512/869/869869.png">
+            <span class="temp">18°C</span>
+        </div>
+
+        <div class="item-clima">
+            Córdoba
+            <img src="https://cdn-icons-png.flaticon.com/512/1163/1163661.png">
+            <span class="temp">22°C</span>
+        </div>
+
+        <div class="item-clima">
+            Rosario
+            <img src="https://cdn-icons-png.flaticon.com/512/414/414927.png">
+            <span class="temp">20°C</span>
+        </div>
+
+        <div class="item-clima">
+            Mendoza
+            <img src="https://cdn-icons-png.flaticon.com/512/1163/1163624.png">
+            <span class="temp">16°C</span>
+        </div>
+
+        <div class="item-clima">
+            Posadas
+            <img src="https://cdn-icons-png.flaticon.com/512/869/869869.png">
+            <span class="temp">27°C</span>
+        </div>
+
+        <div class="item-clima">
+            Salta
+            <img src="https://cdn-icons-png.flaticon.com/512/1779/1779940.png">
+            <span class="temp">24°C</span>
+        </div>
+
+        <div class="item-clima">
+            Ushuaia
+            <img src="https://cdn-icons-png.flaticon.com/512/642/642102.png">
+            <span class="temp">6°C</span>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
