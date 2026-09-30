@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@500;700;900&display=swap');
+
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: transparent !important;
+      background-color: rgba(0, 0, 0, 0) !important;
+      overflow: hidden;
+      font-family: 'Roboto', sans-serif;
+      width: 1920px;
+      height: 1080px;
+    }
+
+    /* Zócalo inferior fijo de pantalla completa (1920px) */
+    .tv-ticker-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 1920px;
+      height: 60px;
+      background: rgba(15, 23, 42, 0.95);
+      border-top: 4px solid #E11D48; /* Línea superior roja estilo TV */
+      display: flex;
+      align-items: center;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.6);
+      box-sizing: border-box;
+    }
+
+    /* Etiqueta fija izquierda */
+    .badge-container {
+      flex-shrink: 0;
+      background-color: #E11D48;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 25px;
+      z-index: 10;
+      box-shadow: 5px 0 15px rgba(0,0,0,0.4);
+    }
+
+    .badge {
+      color: #FFFFFF;
+      font-weight: 900;
+      font-size: 18px;
+      letter-spacing: 2px;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    /* Ventana del texto en movimiento */
+    .ticker-wrapper {
+      flex-grow: 1;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Elemento animado continuo */
+    .ticker-content {
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      position: absolute;
+      will-change: transform;
+    }
+
+    .news-item {
+      display: inline-flex;
+      align-items: center;
+      font-size: 20px;
+      font-weight: 700;
+      color: #FFFFFF;
+      padding-right: 50px;
+    }
+
+    .news-source {
+      color: #FFBE00;
+      font-weight: 900;
+      margin-right: 12px;
+    }
+
+    .news-separator {
+      color: #E11D48;
+      margin-left: 30px;
+      font-size: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="tv-ticker-container">
+    <div class="badge-container">
+      <span class="badge">ÚLTIMO MOMENTO</span>
+    </div>
+    
+    <div class="ticker-wrapper">
+      <div id="ticker-text" class="ticker-content">
+        <div class="news-item"><span class="news-source">[SISTEMA]</span> Cargando noticias automáticas en vivo...</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const rssFeeds = [
+    { name: "INFOBAE", url: "https://www.infobae.com/feeds/rss/" },
+    { name: "LA NACION", url: "https://www.lanacion.com.ar/arc/outboundfeeds/rss/?outputType=xml" },
+    { name: "CLARIN", url: "https://www.clarin.com/rss/lo-ultimo/" },
+    { name: "PAGINA 12", url: "https://www.pagina12.com.ar/rss/portada" }
+  ];
+
+  let allNews = [];
+  let animationId = null;
+
+  function cleanText(html) {
+    const tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  }
+
+  async function fetchAllNews() {
+    let collectedNews = [];
+
+    for (const feed of rssFeeds) {
+      try {
+        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}`;
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (data.status === 'ok' && data.items && data.items.length > 0) {
+          const items = data.items.slice(0, 6).map(item => {
+            const title = cleanText(item.title).trim();
+            const summary = cleanText(item.description || item.content || "").trim();
+            
+            // Si el resumen es largo, se junta con el título para mostrar la noticia completa sin cortes
+            let fullNews = title;
+            if (summary.length > 15 && !summary.includes(title)) {
+              fullNews += ` — ${summary}`;
+            }
+
+            return {
+              text: fullNews,
+              source: feed.name
+            };
+          });
+          collectedNews = collectedNews.concat(items);
+        }
+      } catch (e) {
+        console.error(`Error en ${feed.name}:`, e);
+      }
+    }
+
+    if (collectedNews.length > 0) {
+      allNews = collectedNews.sort(() => Math.random() - 0.5);
+      renderAndStartTicker();
+    }
+  }
+
+  function renderAndStartTicker() {
+    const container = document.getElementById('ticker-text');
+    if (animationId) cancelAnimationFrame(animationId);
+
+    // Generar el HTML continuo con todas las noticias completas
+    let htmlContent = '';
+    allNews.forEach(item => {
+      htmlContent += `
+        <div class="news-item">
+          <span class="news-source">[${item.source}]</span> ${item.text}
+          <span class="news-separator">•</span>
+        </div>
+      `;
+    });
+
+    // Duplicar el contenido para lograr un bucle infinito fluido sin pausas
+    container.innerHTML = htmlContent + htmlContent;
+
+    // Animación fluida por JavaScript (60 FPS)
+    let posX = 0;
+    const speed = 1.0; // Ajusta este valor si quieres que pase más rápido o más lento
+
+    function step() {
+      posX -= speed;
+      const halfWidth = container.scrollWidth / 2;
+
+      if (Math.abs(posX) >= halfWidth) {
+        posX = 0;
+      }
+
+      container.style.transform = `translateX(${posX}px)`;
+      animationId = requestAnimationFrame(step);
+    }
+
+    step();
+  }
+
+  // Carga inicial
+  fetchAllNews();
+
+  // Actualizar noticias en segundo plano cada 10 minutos
+  setInterval(fetchAllNews, 600000);
+</script>
+
+</body>
+</html>
