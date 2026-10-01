@@ -322,7 +322,9 @@
             try {
                 const response = await fetch(WORKER_URL, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { 
+                        "Content-Type": "application/json"
+                    },
                     body: JSON.stringify({
                         model: "llama-3.1-8b-instant",
                         response_format: { type: "json_object" },
@@ -335,18 +337,22 @@
                 });
 
                 if (!response.ok) {
-                    console.error("Error en respuesta de Worker:", response.status);
+                    console.error("Respuesta no OK del Worker:", response.status);
                     return obtenerMensajeBackup();
                 }
 
                 const data = await response.json();
+
+                if (data.error) {
+                    console.error("Error devuelto por la API de Groq:", data.error);
+                    return obtenerMensajeBackup();
+                }
+
                 const res = JSON.parse(data.choices[0].message.content);
 
-                // Guardar en historial anti-repetición
                 if (res.nombre && res.lugar) {
                     historialNombres.push(res.nombre);
                     historialUbicaciones.push(res.lugar);
-
                     if (historialNombres.length > 5) historialNombres.shift();
                     if (historialUbicaciones.length > 5) historialUbicaciones.shift();
                 }
@@ -354,12 +360,12 @@
                 return res;
 
             } catch (err) {
-                console.error("Error de conexión con Cloudflare Worker:", err);
+                console.error("Error de conexión:", err);
                 return obtenerMensajeBackup();
             }
         }
 
-        // Función de respaldo rotativa si no responde la red
+        // Función de respaldo rotativa si falla la red
         function obtenerMensajeBackup() {
             const backups = [
                 { nombre: "Cristian", lugar: "Chaco", mensaje: "Hola soy cristian de chaco los veo todo el día." },
