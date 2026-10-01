@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DJ TV Estación Mix - Zócalo & Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: transparent;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* -------------------------------------------------------------
+           1. ESTILOS DEL ZÓCALO (OBS / VMIX)
+           ------------------------------------------------------------- */
+        .zocalo-screen {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            display: flex;
+            align-items: stretch;
+            background: rgba(15, 15, 26, 0.94);
+            border-left: 6px solid #ff0055;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 0, 85, 0.3);
+            max-width: 850px;
+            color: #ffffff;
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .zocalo-screen.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .badge-canal {
+            background: linear-gradient(135deg, #ff0055, #7928ca);
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-top-left-radius: 2px;
+            border-bottom-left-radius: 2px;
+            min-width: 140px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .badge-canal .titulo { font-size: 18px; color: #fff; }
+        .badge-canal .subtitulo { font-size: 10px; color: #00f2fe; letter-spacing: 2px; }
+
+        .contenido {
+            padding: 12px 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .header-usuario {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .nombre-usuario { font-size: 18px; font-weight: 700; color: #00f2fe; }
+        .lugar-usuario {
+            font-size: 14px;
+            font-weight: 500;
+            color: #aaa;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        .mensaje-texto { font-size: 16px; color: #eeeeee; font-weight: 400; line-height: 1.3; }
+
+        /* -------------------------------------------------------------
+           2. ESTILOS DEL PANEL DE CONTROL (ADMIN)
+           ------------------------------------------------------------- */
+        .btn-abrir-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.5);
+            color: #fff;
+            border: 1px solid #ff0055;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            z-index: 9999;
+            font-size: 12px;
+        }
+
+        .admin-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+
+        .admin-modal.active { display: flex; }
+
+        .admin-card {
+            background: #1a1a2e;
+            border: 1px solid #ff0055;
+            padding: 25px;
+            border-radius: 10px;
+            width: 380px;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.4);
+        }
+
+        .admin-card h2 { margin-bottom: 15px; color: #00f2fe; text-align: center; font-size: 20px; }
+        .admin-card label { display: block; margin-top: 10px; font-size: 12px; color: #ccc; }
+        .admin-card input, .admin-card textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 4px;
+            background: #0f0f1a;
+            border: 1px solid #333;
+            color: #fff;
+            border-radius: 4px;
+        }
+
+        .admin-card button {
+            width: 100%;
+            margin-top: 15px;
+            padding: 10px;
+            background: linear-gradient(135deg, #ff0055, #7928ca);
+            border: none;
+            color: #fff;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .status-msg { margin-top: 10px; font-size: 12px; text-align: center; color: #00f2fe; }
+    </style>
+</head>
+<body>
+
+    <!-- PANTALLA ZÓCALO PARA OBS -->
+    <div class="zocalo-screen" id="zocalo">
+        <div class="badge-canal">
+            <span class="titulo">DJ TV</span>
+            <span class="subtitulo">ESTACIÓN MIX</span>
+        </div>
+        <div class="contenido">
+            <div class="header-usuario">
+                <span class="nombre-usuario" id="nombre">Cargando...</span>
+                <span class="lugar-usuario" id="lugar">Argentina</span>
+            </div>
+            <div class="mensaje-texto" id="mensaje">Conectando...</div>
+        </div>
+    </div>
+
+    <!-- BOTÓN DISCRETO PARA ABRIR PANEL -->
+    <button class="btn-abrir-panel" onclick="abrirLogin()">Panel Admin</button>
+
+    <!-- MODAL PANEL ADMIN -->
+    <div class="admin-modal" id="adminModal">
+        <!-- FORMULARIO LOGIN -->
+        <div class="admin-card" id="formLogin">
+            <h2>Acceso Requerido</h2>
+            <label>Contraseña de Producción:</label>
+            <input type="password" id="inputPass" placeholder="Ingresá la clave">
+            <button onclick="validarPass()">Ingresar</button>
+            <button onclick="cerrarPanel()" style="background: #444; margin-top: 5px;">Cerrar</button>
+        </div>
+
+        <!-- FORMULARIO INGRESAR MENSAJE -->
+        <div class="admin-card" id="formMensaje" style="display:none;">
+            <h2>Enviar Mensaje Real</h2>
+            <label>Nombre:</label>
+            <input type="text" id="inputNombre" placeholder="Ej: Cristian">
+            <label>Ubicación / Lugar:</label>
+            <input type="text" id="inputLugar" placeholder="Ej: Chaco">
+            <label>Mensaje del Televidente:</label>
+            <textarea id="inputTexto" rows="3" placeholder="Ej: Saludos a todos los que escuchan..."></textarea>
+            
+            <button onclick="guardarMensajeManual()">Publicar a Cola</button>
+            <div class="status-msg" id="statusMsg"></div>
+            <button onclick="cerrarPanel()" style="background: #444; margin-top: 10px;">Salir del Panel</button>
+        </div>
+    </div>
+
+    <script>
+        // ========================================================
+        // CONFIGURACIÓN DE CONEXIÓN CON CLOUDFLARE WORKER
+        // ========================================================
+        const WORKER_URL = "https://groq-proxy.fachacarlos1.workers.dev/";
+        const CLAVE_ADMIN = "you120";
+
+        // Tiempos (milisegundos)
+        const TIEMPO_VISIBILIDAD = 8000; // 8 segundos visible
+        const TIEMPO_OCULTO = 12000;     // 12 segundos oculto
+
+        // Colas de almacenamiento local (Browser Cache)
+        let mensajesReales = JSON.parse(localStorage.getItem('mensajesReales')) || [];
+        let aprendizajeEstilo = JSON.parse(localStorage.getItem('aprendizajeEstilo')) || [];
+        let historialUbicaciones = [];
+        let historialNombres = [];
+
+        // Elementos DOM
+        const zocalo = document.getElementById('zocalo');
+        const nombreEl = document.getElementById('nombre');
+        const lugarEl = document.getElementById('lugar');
+        const mensajeEl = document.getElementById('mensaje');
+
+        // ========================================================
+        // LÓGICA DE PANEL ADMINISTRADOR
+        // ========================================================
+        function abrirLogin() {
+            document.getElementById('adminModal').classList.add('active');
+        }
+
+        function cerrarPanel() {
+            document.getElementById('adminModal').classList.remove('active');
+            document.getElementById('formLogin').style.display = 'block';
+            document.getElementById('formMensaje').style.display = 'none';
+            document.getElementById('inputPass').value = '';
+        }
+
+        function validarPass() {
+            const pass = document.getElementById('inputPass').value;
+            if (pass === CLAVE_ADMIN) {
+                document.getElementById('formLogin').style.display = 'none';
+                document.getElementById('formMensaje').style.display = 'block';
+            } else {
+                alert("Contraseña incorrecta");
+            }
+        }
+
+        function guardarMensajeManual() {
+            const nombre = document.getElementById('inputNombre').value.trim();
+            const lugar = document.getElementById('inputLugar').value.trim();
+            const mensaje = document.getElementById('inputTexto').value.trim();
+
+            if (!nombre || !lugar || !mensaje) {
+                alert("Por favor completá todos los campos.");
+                return;
+            }
+
+            const nuevoObj = { nombre, lugar, mensaje };
+
+            // 1. Guardar en cola de salida directa
+            mensajesReales.push(nuevoObj);
+            localStorage.setItem('mensajesReales', JSON.stringify(mensajesReales));
+
+            // 2. Guardar en la base de "aprendizaje" para que la IA los imite después
+            aprendizajeEstilo.push(nuevoObj);
+            if(aprendizajeEstilo.length > 20) aprendizajeEstilo.shift();
+            localStorage.setItem('aprendizajeEstilo', JSON.stringify(aprendizajeEstilo));
+
+            // Limpiar inputs
+            document.getElementById('inputNombre').value = '';
+            document.getElementById('inputLugar').value = '';
+            document.getElementById('inputTexto').value = '';
+
+            const status = document.getElementById('statusMsg');
+            status.textContent = "¡Mensaje guardado! Saldrá en el próximo turno.";
+            setTimeout(() => status.textContent = "", 3000);
+        }
+
+        // ========================================================
+        // GENERACIÓN DE MENSAJES (WORKER IA O REAL)
+        // ========================================================
+        async function obtenerSiguienteMensaje() {
+            // 1. Si hay un mensaje real manual, sale primero
+            if (mensajesReales.length > 0) {
+                const mensajePrioritario = mensajesReales.shift();
+                localStorage.setItem('mensajesReales', JSON.stringify(mensajesReales));
+                return mensajePrioritario;
+            }
+
+            // 2. Si no hay mensajes manuales, consultamos al Worker de Cloudflare
+            return await generarMensajeConIA();
+        }
+
+        async function generarMensajeConIA() {
+            let ejemplosTexto = "";
+            if (aprendizajeEstilo.length > 0) {
+                ejemplosTexto = "Imitá exactamente el tono y estilo de estos mensajes reales recibidos previamente:\n";
+                aprendizajeEstilo.slice(-5).forEach(m => {
+                    ejemplosTexto += `- "${m.nombre} de ${m.lugar}: ${m.mensaje}"\n`;
+                });
+            }
+
+            const promptSystem = `
+            Sos un simulador de audiencia para el canal de música "DJ TV Estación Mix" en Argentina.
+            Debes responder obligatoriamente con un formato JSON puro con las claves "nombre", "lugar", "mensaje".
+
+            REGLAS ANTI-REPETICIÓN OBLIGATORIAS:
+            1. PROHIBIDO usar estos nombres recientes: [${historialNombres.join(', ')}].
+            2. PROHIBIDO usar estas ciudades/provincias recientes: [${historialUbicaciones.join(', ')}].
+            3. Variá entre ciudades pequeñas, medianas y capitales del interior de Argentina.
+
+            REGLAS DE ESTILO:
+            ${ejemplosTexto}
+            - Mensaje corto (máximo 120 caracteres).
+            - Tono argentino fresco, espontáneo y coloquial.
+            `;
+
+            try {
+                const response = await fetch(WORKER_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        model: "llama-3.1-8b-instant",
+                        response_format: { type: "json_object" },
+                        messages: [
+                            { role: "system", content: promptSystem },
+                            { role: "user", content: "Generá un nuevo mensaje simulado en formato json." }
+                        ],
+                        temperature: 0.9
+                    })
+                });
+
+                if (!response.ok) {
+                    console.error("Error en respuesta de Worker:", response.status);
+                    return obtenerMensajeBackup();
+                }
+
+                const data = await response.json();
+                const res = JSON.parse(data.choices[0].message.content);
+
+                // Guardar en historial anti-repetición
+                if (res.nombre && res.lugar) {
+                    historialNombres.push(res.nombre);
+                    historialUbicaciones.push(res.lugar);
+
+                    if (historialNombres.length > 5) historialNombres.shift();
+                    if (historialUbicaciones.length > 5) historialUbicaciones.shift();
+                }
+
+                return res;
+
+            } catch (err) {
+                console.error("Error de conexión con Cloudflare Worker:", err);
+                return obtenerMensajeBackup();
+            }
+        }
+
+        // Función de respaldo rotativa si no responde la red
+        function obtenerMensajeBackup() {
+            const backups = [
+                { nombre: "Cristian", lugar: "Chaco", mensaje: "Hola soy cristian de chaco los veo todo el día." },
+                { nombre: "Mariela", lugar: "Posadas", mensaje: "Buenas noches me encanta el canal." },
+                { nombre: "Emilio", lugar: "Buenos Aires", mensaje: "¡Qué buenos videoclips musicales están pasando!" },
+                { nombre: "Facu", lugar: "Córdoba", mensaje: "Prendidísimo a DJ TV Estación Mix con unos mates." },
+                { nombre: "Gonzalo", lugar: "Mendoza", mensaje: "Saludos a toda la audiencia de Estación Mix." }
+            ];
+            return backups[Math.floor(Math.random() * backups.length)];
+        }
+
+        // ========================================================
+        // CICLO DE PANTALLA
+        // ========================================================
+        async function cicloPantalla() {
+            const data = await obtenerSiguienteMensaje();
+
+            nombreEl.textContent = data.nombre;
+            lugarEl.textContent = data.lugar;
+            mensajeEl.textContent = `"${data.mensaje}"`;
+
+            // Entrada
+            zocalo.classList.add('visible');
+
+            // Salida
+            setTimeout(() => {
+                zocalo.classList.remove('visible');
+            }, TIEMPO_VISIBILIDAD);
+        }
+
+        // Inicio automático del ciclo
+        function arrancar() {
+            cicloPantalla();
+            setInterval(cicloPantalla, TIEMPO_VISIBILIDAD + TIEMPO_OCULTO);
+        }
+
+        setTimeout(arrancar, 2000);
+    </script>
+</body>
+</html>
