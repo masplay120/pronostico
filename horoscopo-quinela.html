@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Zócalo TV - Quiniela & Horóscopo Real</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; }
+    body { background-color: transparent; overflow: hidden; }
+
+    .tv-banner {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      height: 75px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      color: white;
+      overflow: hidden;
+      transition: background 0.8s ease, border-color 0.8s ease;
+    }
+
+    .theme-quiniela {
+      background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
+      border-left: 6px solid #f59e0b;
+    }
+
+    .theme-tarot {
+      background: linear-gradient(90deg, #1e1b4b 0%, #311b92 100%);
+      border-left: 6px solid #a855f7;
+    }
+
+    .brand-badge {
+      padding: 0 22px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      z-index: 2;
+      box-shadow: 4px 0 10px rgba(0,0,0,0.3);
+      transition: background 0.8s ease;
+    }
+
+    .badge-quiniela { background: #f59e0b; color: #0f172a; }
+    .badge-tarot { background: #a855f7; color: #ffffff; }
+
+    .brand-title {
+      font-weight: 900;
+      font-size: 16px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      line-height: 1.1;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      font-weight: 800;
+      background: rgba(15, 23, 42, 0.25);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 3px;
+      letter-spacing: 0.5px;
+    }
+
+    .item-title {
+      padding: 0 25px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+      z-index: 2;
+      min-width: 170px;
+      transition: transform 0.4s ease, opacity 0.4s ease, background 0.8s ease;
+    }
+
+    .title-quiniela { background: #334155; color: #38bdf8; }
+    .title-tarot { background: #3b0764; color: #e9d5ff; }
+
+    .item-sub {
+      font-size: 10px;
+      color: #c084fc;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .ticker-container {
+      flex-grow: 1;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    .ticker-content {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      width: 100%;
+      justify-content: space-around;
+      transition: transform 0.4s ease, opacity 0.4s ease;
+    }
+
+    .tv-exit { opacity: 0; transform: translateY(-15px); }
+    .tv-enter-prep { opacity: 0; transform: translateY(15px); }
+
+    .shift-card {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.06);
+      padding: 6px 18px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+      min-width: 120px;
+    }
+
+    .shift-name { font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
+    .shift-val { font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: 1px; }
+    .no-val { color: #64748b; font-size: 18px; }
+
+    .advice-box {
+      flex-grow: 1;
+      font-size: 14px;
+      font-weight: 600;
+      color: #f3e8ff;
+      line-height: 1.35;
+      white-space: normal;
+      background: rgba(0,0,0,0.25);
+      padding: 8px 16px;
+      border-radius: 8px;
+      border-left: 3px solid #c084fc;
+    }
+  </style>
+</head>
+<body>
+
+<div class="tv-banner theme-quiniela" id="banner-box">
+  <div class="brand-badge badge-quiniela" id="badge-box">
+    <div class="brand-title" id="badge-title">QUINIELAS</div>
+    <div class="brand-sub" id="badge-sub">HOY</div>
+  </div>
+  <div class="item-title title-quiniela" id="item-box">
+    <span id="item-main">CARGANDO...</span>
+    <span class="item-sub" id="item-sub"></span>
+  </div>
+  <div class="ticker-container">
+    <div class="ticker-content" id="ticker-results">
+      <!-- Datos -->
+    </div>
+  </div>
+</div>
+
+<script>
+  const WORKER_URL = 'https://quiniela-api.fachacarlos1.workers.dev/';
+
+  let currentMode = "QUINIELA"; 
+  let quinielaIndex = 0;
+  let tarotIndex = 0;
+
+  let quinielaData = [];
+  let quinielaDate = "";
+  let tarotRealData = {};
+
+  const shifts = [
+    { name: "PREV 10:15", index: 0 },
+    { name: "PRIM 12:00", index: 1 },
+    { name: "MATU 15:00", index: 2 },
+    { name: "VESP 18:00", index: 3 },
+    { name: "NOCT 21:00", index: 4 }
+  ];
+
+  const signsList = [
+    { name: "Aries", key: "aries", elem: "FUEGO" },
+    { name: "Tauro", key: "tauro", elem: "TIERRA" },
+    { name: "Géminis", key: "geminis", elem: "AIRE" },
+    { name: "Cáncer", key: "cancer", elem: "AGUA" },
+    { name: "Leo", key: "leo", elem: "FUEGO" },
+    { name: "Virgo", key: "virgo", elem: "TIERRA" },
+    { name: "Libra", key: "libra", elem: "AIRE" },
+    { name: "Escorpio", key: "escorpio", elem: "AGUA" },
+    { name: "Sagitario", key: "sagitario", elem: "FUEGO" },
+    { name: "Capricornio", key: "capricornio", elem: "TIERRA" },
+    { name: "Acuario", key: "acuario", elem: "AIRE" },
+    { name: "Piscis", key: "piscis", elem: "AGUA" }
+  ];
+
+  async function fetchQuiniela() {
+    try {
+      const response = await fetch(WORKER_URL);
+      const htmlText = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlText, 'text/html');
+
+      const headerText = doc.body.innerText;
+      const dateMatch = headerText.match(/FECHA:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
+      quinielaDate = dateMatch ? "FECHA: " + dateMatch[1] : "FECHA: " + new Date().toLocaleDateString('es-AR');
+
+      const mainTable = doc.querySelector("table[width='322']");
+      if (!mainTable) return;
+
+      const rows = mainTable.querySelectorAll(":scope > tbody > tr, :scope > tr");
+      let temp = [];
+
+      rows.forEach((row) => {
+        const directCells = Array.from(row.children).filter(child => child.tagName === 'TD');
+        if (directCells.length === 6) {
+          const link = directCells[0].querySelector('a');
+          if (link) {
+            let nums = [];
+            for (let i = 1; i <= 5; i++) nums.push(directCells[i].innerText.trim());
+            temp.push({ province: link.innerText.trim(), numbers: nums });
+          }
+        }
+      });
+      if (temp.length > 0) quinielaData = temp;
+    } catch (e) {
+      console.error("Error cargando Quiniela:", e);
+    }
+  }
+
+  async function fetchTarotReal() {
+    try {
+      const res = await fetch(WORKER_URL + '?horoscopo=true');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && typeof data === 'object') {
+          tarotRealData = data;
+        }
+      }
+    } catch (e) {
+      console.error("Error cargando Horóscopo:", e);
+    }
+  }
+
+  function processRotation() {
+    const bannerBox = document.getElementById('banner-box');
+    const badgeBox = document.getElementById('badge-box');
+    const itemBox = document.getElementById('item-box');
+    const itemMain = document.getElementById('item-main');
+    const itemSub = document.getElementById('item-sub');
+    const badgeTitle = document.getElementById('badge-title');
+    const badgeSub = document.getElementById('badge-sub');
+    const tickerEl = document.getElementById('ticker-results');
+
+    itemBox.classList.add('tv-exit');
+    tickerEl.classList.add('tv-exit');
+
+    setTimeout(() => {
+      if (currentMode === "QUINIELA") {
+        if (quinielaData.length === 0) { fetchQuiniela(); return; }
+
+        bannerBox.className = "tv-banner theme-quiniela";
+        badgeBox.className = "brand-badge badge-quiniela";
+        itemBox.className = "item-title title-quiniela";
+        badgeTitle.innerText = "QUINIELAS";
+        badgeSub.innerText = quinielaDate || "HOY";
+
+        const currentProv = quinielaData[quinielaIndex];
+        itemMain.innerText = currentProv.province;
+        itemSub.innerText = "";
+
+        let html = '';
+        shifts.forEach(s => {
+          const val = currentProv.numbers[s.index] || '';
+          const cleanVal = val.replace(/\D/g, ''); 
+          const hasValue = cleanVal.length >= 3;
+          html += `
+            <div class="shift-card">
+              <span class="shift-name">${s.name}</span>
+              <span class="shift-val ${!hasValue ? 'no-val' : ''}">${hasValue ? cleanVal : '----'}</span>
+            </div>
+          `;
+        });
+        tickerEl.innerHTML = html;
+
+        quinielaIndex++;
+        if (quinielaIndex >= quinielaData.length) {
+          quinielaIndex = 0;
+          currentMode = "TAROT";
+        }
+
+      } else if (currentMode === "TAROT") {
+        bannerBox.className = "tv-banner theme-tarot";
+        badgeBox.className = "brand-badge badge-tarot";
+        itemBox.className = "item-title title-tarot";
+        badgeTitle.innerText = "HORÓSCOPO";
+        badgeSub.innerText = new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'numeric' });
+
+        const s = signsList[tarotIndex];
+        itemMain.innerText = s.name;
+        itemSub.innerText = "ELEM: " + s.elem;
+
+        const predictionText = tarotRealData[s.key] || "Día con oportunidades claras para avanzar y afianzar proyectos.";
+
+        tickerEl.innerHTML = `
+          <div class="advice-box">
+            ✨ <b>PREDICCIÓN DEL DÍA:</b> ${predictionText}
+          </div>
+        `;
+
+        tarotIndex++;
+        if (tarotIndex >= signsList.length) {
+          tarotIndex = 0;
+          currentMode = "QUINIELA";
+        }
+      }
+
+      itemBox.classList.remove('tv-exit');
+      tickerEl.classList.remove('tv-exit');
+      itemBox.classList.add('tv-enter-prep');
+      tickerEl.classList.add('tv-enter-prep');
+
+      setTimeout(() => {
+        itemBox.classList.remove('tv-enter-prep');
+        tickerEl.classList.remove('tv-enter-prep');
+      }, 50);
+
+    }, 400);
+  }
+
+  fetchQuiniela();
+  fetchTarotReal();
+
+  setInterval(fetchQuiniela, 120000);
+  setInterval(fetchTarotReal, 1800000);
+
+  setInterval(processRotation, 12000);
+</script>
+
+</body>
+</html>
