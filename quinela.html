@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Zócalo TV - Cabezas Quiniela</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; }
+    body { background-color: transparent; overflow: hidden; }
+
+    /* Zócalo Estilo TV */
+    .tv-banner {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      height: 70px;
+      background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
+      border-radius: 12px;
+      border-left: 6px solid #f59e0b;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      color: white;
+      overflow: hidden;
+    }
+
+    .brand-badge {
+      background: #f59e0b;
+      color: #0f172a;
+      font-weight: 900;
+      font-size: 18px;
+      padding: 0 22px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+      z-index: 2;
+      box-shadow: 4px 0 10px rgba(0,0,0,0.3);
+    }
+
+    /* Título de Provincia con Animación */
+    .province-title {
+      background: #334155;
+      padding: 0 25px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      font-weight: 800;
+      font-size: 18px;
+      text-transform: uppercase;
+      color: #38bdf8;
+      flex-shrink: 0;
+      z-index: 2;
+      min-width: 170px;
+      justify-content: center;
+      transition: transform 0.4s ease, opacity 0.4s ease;
+    }
+
+    .ticker-container {
+      flex-grow: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    /* Contenedor de Resultados con Animación */
+    .ticker-content {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      width: 100%;
+      justify-content: space-around;
+      transition: transform 0.4s ease, opacity 0.4s ease;
+    }
+
+    /* Clases de Animación TV (Entrada/Salida) */
+    .tv-exit {
+      opacity: 0;
+      transform: translateY(-15px);
+    }
+
+    .tv-enter-prep {
+      opacity: 0;
+      transform: translateY(15px);
+    }
+
+    .shift-card {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.06);
+      padding: 6px 18px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+      min-width: 120px;
+    }
+
+    .shift-name {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .shift-val {
+      font-size: 22px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 1px;
+    }
+
+    .no-val {
+      color: #64748b;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="tv-banner">
+  <div class="brand-badge">QUINIELAS DE HOY</div>
+  <div class="province-title" id="province-name">CARGANDO...</div>
+  <div class="ticker-container">
+    <div class="ticker-content" id="ticker-results">
+      <!-- Se inyectan las cabezas -->
+    </div>
+  </div>
+</div>
+
+<script>
+  const WORKER_URL = 'https://quiniela-api.fachacarlos1.workers.dev/';
+
+  const shifts = [
+    { name: "PREV 10:15", index: 0 },
+    { name: "PRIM 12:00", index: 1 },
+    { name: "MATU 15:00", index: 2 },
+    { name: "VESP 18:00", index: 3 },
+    { name: "NOCT 21:00", index: 4 }
+  ];
+
+  let parsedData = [];
+  let currentIndex = 0;
+
+  async function fetchLiveResults() {
+    try {
+      const response = await fetch(WORKER_URL);
+      const htmlText = await response.text();
+      
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlText, 'text/html');
+      
+      const mainTable = doc.querySelector("table[width='322']");
+      if (!mainTable) return;
+
+      const rows = mainTable.querySelectorAll(":scope > tbody > tr, :scope > tr");
+      let tempResults = [];
+
+      rows.forEach((row) => {
+        const directCells = Array.from(row.children).filter(child => child.tagName === 'TD');
+
+        if (directCells.length === 6) {
+          const link = directCells[0].querySelector('a');
+          if (link) {
+            const provName = link.innerText.trim();
+            let nums = [];
+            for (let i = 1; i <= 5; i++) {
+              nums.push(directCells[i].innerText.trim());
+            }
+
+            tempResults.push({
+              province: provName,
+              numbers: nums
+            });
+          }
+        }
+      });
+
+      if (tempResults.length > 0) {
+        parsedData = tempResults;
+        renderBanner();
+      }
+    } catch (e) {
+      console.error("Error al obtener datos:", e);
+    }
+  }
+
+  function renderBanner() {
+    if (parsedData.length === 0) {
+      document.getElementById('province-name').innerText = "CONECTANDO...";
+      return;
+    }
+
+    const provEl = document.getElementById('province-name');
+    const tickerEl = document.getElementById('ticker-results');
+
+    // 1. Efecto de Salida (Fade Out + Slide Up)
+    provEl.classList.add('tv-exit');
+    tickerEl.classList.add('tv-exit');
+
+    setTimeout(() => {
+      // 2. Actualizar datos con los valores de la siguiente provincia
+      const current = parsedData[currentIndex];
+      provEl.innerText = current.province;
+
+      let html = '';
+      shifts.forEach(s => {
+        const val = current.numbers[s.index] || '';
+        const cleanVal = val.replace(/\D/g, ''); 
+        const hasValue = cleanVal.length >= 3;
+
+        html += `
+          <div class="shift-card">
+            <span class="shift-name">${s.name}</span>
+            <span class="shift-val ${!hasValue ? 'no-val' : ''}">${hasValue ? cleanVal : '----'}</span>
+          </div>
+        `;
+      });
+
+      tickerEl.innerHTML = html;
+
+      // Preparemos el elemento abajo antes de entrar
+      provEl.classList.remove('tv-exit');
+      tickerEl.classList.remove('tv-exit');
+      provEl.classList.add('tv-enter-prep');
+      tickerEl.classList.add('tv-enter-prep');
+
+      // 3. Efecto de Entrada (Fade In + Slide Down)
+      setTimeout(() => {
+        provEl.classList.remove('tv-enter-prep');
+        tickerEl.classList.remove('tv-enter-prep');
+      }, 50);
+
+      currentIndex = (currentIndex + 1) % parsedData.length;
+    }, 400); // Duración del desvanecimiento de salida (400ms)
+  }
+
+  fetchLiveResults();
+  // Consulta los resultados en segundo plano cada 2 minutos
+  setInterval(fetchLiveResults, 120000);
+
+  // ROTACIÓN CADA 15 SEGUNDOS (15000 ms)
+  setInterval(renderBanner, 15000);
+</script>
+
+</body>
+</html>
