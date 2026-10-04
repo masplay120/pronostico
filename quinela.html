@@ -27,18 +27,33 @@
     .brand-badge {
       background: #f59e0b;
       color: #0f172a;
-      font-weight: 900;
-      font-size: 18px;
       padding: 0 22px;
       height: 100%;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      letter-spacing: 1px;
-      text-transform: uppercase;
       flex-shrink: 0;
       z-index: 2;
       box-shadow: 4px 0 10px rgba(0,0,0,0.3);
+    }
+
+    .brand-title {
+      font-weight: 900;
+      font-size: 17px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      line-height: 1.1;
+    }
+
+    .brand-date {
+      font-size: 11px;
+      font-weight: 800;
+      background: rgba(15, 23, 42, 0.2);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 3px;
+      letter-spacing: 0.5px;
     }
 
     /* Título de Provincia con Animación */
@@ -126,7 +141,10 @@
 <body>
 
 <div class="tv-banner">
-  <div class="brand-badge">QUINIELAS DE HOY</div>
+  <div class="brand-badge">
+    <div class="brand-title">QUINIELAS DE HOY</div>
+    <div class="brand-date" id="banner-date">CARGANDO...</div>
+  </div>
   <div class="province-title" id="province-name">CARGANDO...</div>
   <div class="ticker-container">
     <div class="ticker-content" id="ticker-results">
@@ -148,6 +166,7 @@
 
   let parsedData = [];
   let currentIndex = 0;
+  let currentDate = "";
 
   async function fetchLiveResults() {
     try {
@@ -157,6 +176,19 @@
       const parser = new DOMParser();
       const doc = parser.parseFromString(htmlText, 'text/html');
       
+      // 1. Extraer la fecha directamente desde el encabezado original de la web
+      const headerText = doc.body.innerText;
+      const dateMatch = headerText.match(/FECHA:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
+      if (dateMatch && dateMatch[1]) {
+        currentDate = dateMatch[1];
+        document.getElementById('banner-date').innerText = "FECHA: " + currentDate;
+      } else {
+        // Fallback a la fecha actual del sistema
+        const today = new Date();
+        document.getElementById('banner-date').innerText = "FECHA: " + today.toLocaleDateString('es-AR');
+      }
+
+      // 2. Extraer provincias y números
       const mainTable = doc.querySelector("table[width='322']");
       if (!mainTable) return;
 
@@ -201,12 +233,11 @@
     const provEl = document.getElementById('province-name');
     const tickerEl = document.getElementById('ticker-results');
 
-    // 1. Efecto de Salida (Fade Out + Slide Up)
+    // Transición de Salida (Fade Out + Slide Up)
     provEl.classList.add('tv-exit');
     tickerEl.classList.add('tv-exit');
 
     setTimeout(() => {
-      // 2. Actualizar datos con los valores de la siguiente provincia
       const current = parsedData[currentIndex];
       provEl.innerText = current.province;
 
@@ -226,27 +257,26 @@
 
       tickerEl.innerHTML = html;
 
-      // Preparemos el elemento abajo antes de entrar
+      // Transición de Entrada (Fade In + Slide Down)
       provEl.classList.remove('tv-exit');
       tickerEl.classList.remove('tv-exit');
       provEl.classList.add('tv-enter-prep');
       tickerEl.classList.add('tv-enter-prep');
 
-      // 3. Efecto de Entrada (Fade In + Slide Down)
       setTimeout(() => {
         provEl.classList.remove('tv-enter-prep');
         tickerEl.classList.remove('tv-enter-prep');
       }, 50);
 
       currentIndex = (currentIndex + 1) % parsedData.length;
-    }, 400); // Duración del desvanecimiento de salida (400ms)
+    }, 400);
   }
 
   fetchLiveResults();
-  // Consulta los resultados en segundo plano cada 2 minutos
+  // Consulta actualización en segundo plano cada 2 minutos
   setInterval(fetchLiveResults, 120000);
 
-  // ROTACIÓN CADA 15 SEGUNDOS (15000 ms)
+  // Rotación cada 15 segundos
   setInterval(renderBanner, 15000);
 </script>
 
