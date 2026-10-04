@@ -149,21 +149,21 @@
 <div class="tv-banner theme-quiniela" id="banner-box">
   <div class="brand-badge badge-quiniela" id="badge-box">
     <div class="brand-title" id="badge-title">QUINIELAS</div>
-    <div class="brand-sub" id="badge-sub">HOY</div>
+    <div class="brand-sub" id="badge-sub"></div>
   </div>
   <div class="item-title title-quiniela" id="item-box">
-    <span id="item-main">CARGANDO...</span>
+    <span id="item-main">...</span>
     <span class="item-sub" id="item-sub"></span>
   </div>
   <div class="ticker-container">
     <div class="ticker-content" id="ticker-results">
-      <!-- Datos -->
+      <!-- Datos inyectados -->
     </div>
   </div>
 </div>
 
 <script>
-  const WORKER_URL = 'https://quiniela-api.fachacarlos1.workers.dev/';
+  const WORKER_URL = 'https://horoscopo-quinela.fachacarlos1.workers.dev/';
 
   let currentMode = "QUINIELA"; 
   let quinielaIndex = 0;
@@ -240,7 +240,7 @@
         }
       }
     } catch (e) {
-      console.error("Error cargando Horóscopo:", e);
+      console.error("Error cargando Horóscopo en vivo:", e);
     }
   }
 
@@ -302,7 +302,8 @@
         itemMain.innerText = s.name;
         itemSub.innerText = "ELEM: " + s.elem;
 
-        const predictionText = tarotRealData[s.key] || "Día con oportunidades claras para avanzar y afianzar proyectos.";
+        // Lee la predicción real descargada en tiempo real por el worker
+        const predictionText = tarotRealData[s.key] || "Energías renovadas y favorables para encarar tus proyectos personales en este día.";
 
         tickerEl.innerHTML = `
           <div class="advice-box">
@@ -333,8 +334,8 @@
   fetchQuiniela();
   fetchTarotReal();
 
-  setInterval(fetchQuiniela, 120000);
-  setInterval(fetchTarotReal, 1800000);
+  setInterval(fetchQuiniela, 120000);   // Actualiza Quiniela cada 2 minutos
+  setInterval(fetchTarotReal, 1800000); // Actualiza Horóscopo cada 30 minutos
 
   setInterval(processRotation, 12000);
 </script>
